@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Video Study - Teste do Player</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+
+        video {
+            width: 100%;
+            background: #000;
+        }
+
+        .controls {
+            margin-bottom: 20px;
+        }
+
+        input,
+        button {
+            padding: 10px;
+            margin: 5px;
+        }
+
+        #status {
+            margin-top: 15px;
+            font-weight: bold;
+        }
+    </style>
+
+</head>
+
+<body>
+
+<h1>Video Study</h1>
+
+<div class="controls">
+
+    <input
+            id="email"
+            type="email"
+            placeholder="E-mail"
+    >
+
+    <input
+            id="password"
+            type="password"
+            placeholder="Senha"
+    >
+
+    <input
+            id="videoId"
+            type="number"
+            value="224"
+            placeholder="ID do vídeo"
+    >
+
+    <button id="loginButton">
+        Entrar e carregar vídeo
+    </button>
+
+</div>
+
+
+<video
+        id="player"
+        controls
+        preload="metadata"
+></video>
+
+
+<div id="status">
+    Aguardando...
+</div>
+
+
+<script src="/player-test.js"></script>
+
+</body>
+
+</html>
