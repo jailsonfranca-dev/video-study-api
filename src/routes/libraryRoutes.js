@@ -17,6 +17,7 @@ const authenticateMedia = require("../middlewares/authenticateMedia");
 const videoMetadataController = require('../controllers/videoMetadataController');
 
 const {updateVideoDurationSchema} = require('../validators/videoDurationValidator');
+const studyMaterialController = require('../controllers/studyMaterialController');
 
 const router =
     express.Router();
@@ -103,6 +104,43 @@ router.get(
     '/videos/:id/stream',
     //validateId,
     videoStreamController.stream
+);
+
+router.get(
+    '/videos/:id/study-material',
+    //validateId,
+    studyMaterialController.get
+);
+
+
+router.post(
+    '/videos/:id/study-material/generate',
+    //validateId,
+    studyMaterialController.generate
+);
+
+
+router.post(
+    '/videos/:id/study-material/summary/regenerate',
+    //validateId,
+    studyMaterialController
+        .regenerateSummary
+);
+
+
+router.post(
+    '/videos/:id/study-material/mind-map/regenerate',
+    //validateId,
+    studyMaterialController
+        .regenerateMindMap
+);
+
+
+router.post(
+    '/videos/:id/study-material/flashcards/regenerate',
+    //validateId,
+    studyMaterialController
+        .regenerateFlashcards
 );
 
 

@@ -18,6 +18,14 @@ const AppError =
 const FOLDER_MIME_TYPE =
     'application/vnd.google-apps.folder';
 
+const fs =
+    require('node:fs');
+
+const {
+    pipeline
+} =
+    require('node:stream/promises');
+
 
 async function createAuthenticatedDriveClient(userId) {
 
@@ -448,10 +456,130 @@ async function getFolderTree(
     };
 }
 
+//***************adicionar download******************
+async function downloadFileToPath(
+    userId,
+    fileId,
+    destinationPath
+) {
+
+    const drive =
+        await createAuthenticatedDriveClient(
+            userId
+        );
+
+
+    /*
+     * Primeiro buscamos metadados.
+     */
+    const metadataResponse =
+        await drive.files.get({
+
+            fileId,
+
+            supportsAllDrives:
+                true,
+
+            fields:
+                'id,name,mimeType,size,capabilities(canDownload)'
+        });
+
+
+    const file =
+        metadataResponse.data;
+
+
+    if (
+        file.capabilities &&
+        file.capabilities.canDownload === false
+    ) {
+
+        throw new AppError(
+            'O Google Drive não permite baixar este arquivo.',
+            403
+        );
+
+    }
+
+
+    if (
+        !file.mimeType ||
+        !file.mimeType.startsWith(
+            'video/'
+        )
+    ) {
+
+        throw new AppError(
+            'O arquivo informado não é um vídeo.',
+            400
+        );
+
+    }
+
+
+    /*
+     * Download real.
+     */
+    const response =
+        await drive.files.get(
+            {
+
+                fileId,
+
+                alt:
+                    'media',
+
+                supportsAllDrives:
+                    true
+            },
+            {
+                responseType:
+                    'stream'
+            }
+        );
+
+
+    const writeStream =
+        fs.createWriteStream(
+            destinationPath
+        );
+
+
+    await pipeline(
+        response.data,
+        writeStream
+    );
+
+
+    return {
+
+        id:
+        file.id,
+
+        name:
+        file.name,
+
+        mimeType:
+        file.mimeType,
+
+        size:
+            file.size
+                ? Number(
+                    file.size
+                )
+                : null,
+
+        path:
+        destinationPath
+    };
+}
+//*************adicionar download********************
+
 module.exports = {
     createAuthenticatedDriveClient,
     listRootItems,
     getFolderTree,
     listFolderItems,
-    getVideoMetadata
+    getVideoMetadata,
+    downloadFileToPath
 };
