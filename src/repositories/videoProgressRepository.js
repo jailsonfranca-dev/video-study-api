@@ -1,4 +1,7 @@
-const pool = require('../config/database');
+const pool =
+    require('../config/database');
+
+
 async function findByUserAndVideo(
     userId,
     videoId,
@@ -13,6 +16,7 @@ async function findByUserAndVideo(
             current_time_seconds,
             percentage,
             completed,
+            completed_at,
             last_watched_at,
             created_at,
             updated_at
@@ -23,13 +27,21 @@ async function findByUserAndVideo(
           AND video_id = $2
     `;
 
-    const result = await db.query(
-        query,
-        [userId, videoId]
-    );
+
+    const result =
+        await db.query(
+            query,
+            [
+                userId,
+                videoId
+            ]
+        );
+
 
     return result.rows[0];
 }
+
+
 async function upsert(
     {
         userId,
@@ -48,6 +60,7 @@ async function upsert(
             current_time_seconds,
             percentage,
             completed,
+            completed_at,
             last_watched_at
         )
 
@@ -57,12 +70,20 @@ async function upsert(
             $3,
             $4,
             $5,
+
+            CASE
+                WHEN $5 = TRUE
+                THEN CURRENT_TIMESTAMP
+                ELSE NULL
+            END,
+
             CURRENT_TIMESTAMP
         )
 
         ON CONFLICT (user_id, video_id)
 
         DO UPDATE SET
+
             current_time_seconds =
                 EXCLUDED.current_time_seconds,
 
@@ -71,6 +92,20 @@ async function upsert(
 
             completed =
                 EXCLUDED.completed,
+
+            completed_at =
+                CASE
+
+                    WHEN
+                        video_progress.completed_at IS NULL
+                        AND EXCLUDED.completed = TRUE
+
+                    THEN CURRENT_TIMESTAMP
+
+                    ELSE
+                        video_progress.completed_at
+
+                END,
 
             last_watched_at =
                 CURRENT_TIMESTAMP,
@@ -85,6 +120,7 @@ async function upsert(
             current_time_seconds,
             percentage,
             completed,
+            completed_at,
             last_watched_at,
             created_at,
             updated_at
@@ -100,14 +136,17 @@ async function upsert(
     ];
 
 
-    const result = await db.query(
-        query,
-        values
-    );
+    const result =
+        await db.query(
+            query,
+            values
+        );
 
 
     return result.rows[0];
 }
+
+
 async function updateCompleted(
     userId,
     videoId,
@@ -120,6 +159,7 @@ async function updateCompleted(
             user_id,
             video_id,
             completed,
+            completed_at,
             last_watched_at
         )
 
@@ -127,15 +167,42 @@ async function updateCompleted(
             $1,
             $2,
             $3,
+
+            CASE
+                WHEN $3 = TRUE
+                THEN CURRENT_TIMESTAMP
+                ELSE NULL
+            END,
+
             CURRENT_TIMESTAMP
         )
 
         ON CONFLICT (user_id, video_id)
 
         DO UPDATE SET
-            completed = EXCLUDED.completed,
-            last_watched_at = CURRENT_TIMESTAMP,
-            updated_at = CURRENT_TIMESTAMP
+
+            completed =
+                EXCLUDED.completed,
+
+            completed_at =
+                CASE
+
+                    WHEN
+                        video_progress.completed_at IS NULL
+                        AND EXCLUDED.completed = TRUE
+
+                    THEN CURRENT_TIMESTAMP
+
+                    ELSE
+                        video_progress.completed_at
+
+                END,
+
+            last_watched_at =
+                CURRENT_TIMESTAMP,
+
+            updated_at =
+                CURRENT_TIMESTAMP
 
         RETURNING
             id,
@@ -144,27 +211,33 @@ async function updateCompleted(
             current_time_seconds,
             percentage,
             completed,
+            completed_at,
             last_watched_at,
             created_at,
             updated_at
     `;
 
 
-    const result = await db.query(
-        query,
-        [
-            userId,
-            videoId,
-            completed
-        ]
-    );
+    const result =
+        await db.query(
+            query,
+            [
+                userId,
+                videoId,
+                completed
+            ]
+        );
 
 
     return result.rows[0];
 }
 
+
 module.exports = {
+
     findByUserAndVideo,
+
     upsert,
+
     updateCompleted
 };

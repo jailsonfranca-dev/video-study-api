@@ -20,6 +20,10 @@ const googleDriveRoutes =
 
 const libraryRoutes =
     require('./routes/libraryRoutes');
+const dashboardRoutes =
+    require(
+        './routes/dashboardRoutes'
+    );
 
 const errorHandler =
     require('./middlewares/errorHandler');
@@ -148,6 +152,11 @@ app.use(
 app.use(
     '/library',
     libraryRoutes
+);
+
+app.use(
+    '/dashboard',
+    dashboardRoutes
 );
 
 
