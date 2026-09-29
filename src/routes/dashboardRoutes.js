@@ -52,6 +52,16 @@ router.get(
     dashboardController.continueStudying
 );
 
+router.get(
+    '/recent-activity',
+    dashboardController.recentActivity
+);
+
+router.get(
+    '/study-time',
+    dashboardController.studyTime
+);
+
 
 module.exports =
     router;

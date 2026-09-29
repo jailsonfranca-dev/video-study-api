@@ -193,6 +193,70 @@ async function updateWeeklyGoal(
 
 }
 
+async function recentActivity(
+    req,
+    res,
+    next
+) {
+
+    try {
+
+        const result =
+            await dashboardService
+                .getRecentActivity(
+                    req.user.id
+                );
+
+
+        return res
+            .status(200)
+            .json(
+                result
+            );
+
+
+    } catch (error) {
+
+        next(
+            error
+        );
+
+    }
+
+}
+
+async function studyTime(
+    req,
+    res,
+    next
+) {
+
+    try {
+
+        const result =
+            await dashboardService
+                .getStudyTime(
+                    req.user.id
+                );
+
+
+        return res
+            .status(200)
+            .json(
+                result
+            );
+
+
+    } catch (error) {
+
+        next(
+            error
+        );
+
+    }
+
+}
+
 
 module.exports = {
 
@@ -204,5 +268,9 @@ module.exports = {
 
     continueStudying,
 
-    updateWeeklyGoal
+    updateWeeklyGoal,
+
+    recentActivity,
+
+    studyTime
 };

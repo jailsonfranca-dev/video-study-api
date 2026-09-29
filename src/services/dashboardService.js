@@ -427,21 +427,332 @@ async function getContinueStudying(
                     name:
                     video.name,
 
+
+                    folderId:
+                        video.folder_id
+                            ? String(
+                                video.folder_id
+                            )
+                            : null,
+
+
+                    folderName:
+                        video.folder_name ??
+                        null,
+
+
                     durationSeconds:
-                    video.duration_seconds,
+                        video.duration_seconds !==
+                        null
+
+                            ? Number(
+                                video.duration_seconds
+                            )
+
+                            : null,
+
 
                     currentTimeSeconds:
-                    video.current_time_seconds,
+                        Number(
+                            video.current_time_seconds ??
+                            0
+                        ),
+
 
                     progressPercent:
                         Number(
-                            video.progress_percent
+                            video.progress_percent ??
+                            0
                         )
 
                 })
             )
 
     };
+}
+
+async function getRecentActivity(
+    userId
+) {
+
+    const activities =
+        await dashboardRepository
+            .getRecentActivity(
+                userId,
+                8
+            );
+
+
+    return {
+
+        activities:
+            (
+                activities ??
+                []
+            )
+                .map(
+                    activity => ({
+
+                        videoId:
+                            String(
+                                activity.video_id
+                            ),
+
+                        videoName:
+                        activity.video_name,
+
+
+                        folderId:
+                            activity.folder_id
+                                ? String(
+                                    activity.folder_id
+                                )
+                                : null,
+
+
+                        folderName:
+                            activity.folder_name ??
+                            null,
+
+
+                        durationSeconds:
+                            activity.duration_seconds !==
+                            null
+                                ? Number(
+                                    activity.duration_seconds
+                                )
+                                : null,
+
+
+                        currentTimeSeconds:
+                            Number(
+                                activity.current_time_seconds ??
+                                0
+                            ),
+
+
+                        progressPercent:
+                            Number(
+                                activity.percentage ??
+                                0
+                            ),
+
+
+                        completed:
+                            Boolean(
+                                activity.completed
+                            ),
+
+
+                        activityType:
+                            activity.completed
+                                ? 'completed'
+                                : 'watched',
+
+
+                        lastWatchedAt:
+                            activity.last_watched_at ??
+                            null,
+
+
+                        completedAt:
+                            activity.completed_at ??
+                            null,
+
+
+                        activityAt:
+                            activity.activity_at ??
+                            null
+
+                    })
+                )
+
+    };
+}
+
+async function getStudyTime(
+    userId
+) {
+
+    const [
+        summary,
+        weeklyRows
+    ] =
+        await Promise.all([
+
+            dashboardRepository
+                .getStudyTimeSummary(
+                    userId
+                ),
+
+            dashboardRepository
+                .getWeeklyStudyTime(
+                    userId
+                )
+
+        ]);
+
+
+    const todaySeconds =
+        Number(
+            summary?.today_seconds ??
+            0
+        );
+
+
+    const weekSeconds =
+        Number(
+            summary?.week_seconds ??
+            0
+        );
+
+
+    const totalSeconds =
+        Number(
+            summary?.total_seconds ??
+            0
+        );
+
+
+    const daysElapsed =
+        Math.max(
+            Number(
+                summary?.days_elapsed ??
+                1
+            ),
+            1
+        );
+
+
+    /*
+     * Média da semana atual.
+     *
+     * Exemplo:
+     *
+     * segunda + terça = 2 dias
+     *
+     * 120 minutos estudados
+     * ----------------------
+     * média = 60 minutos/dia
+     */
+    const averageDailySeconds =
+        Math.round(
+            weekSeconds /
+            daysElapsed
+        );
+
+
+    const dayNames = {
+
+        1: 'seg',
+
+        2: 'ter',
+
+        3: 'qua',
+
+        4: 'qui',
+
+        5: 'sex',
+
+        6: 'sab',
+
+        7: 'dom'
+
+    };
+
+
+    const weekDays =
+        (
+            weeklyRows ??
+            []
+        )
+            .map(
+                row => {
+
+                    const dayNumber =
+                        Number(
+                            row.day_of_week
+                        );
+
+
+                    return {
+
+                        date:
+                        row.study_date,
+
+                        day:
+                            dayNames[
+                                dayNumber
+                                ] ??
+                            '',
+
+                        seconds:
+                            Number(
+                                row.seconds ??
+                                0
+                            )
+
+                    };
+
+                }
+            );
+
+
+    return {
+
+        today: {
+
+            seconds:
+            todaySeconds
+
+        },
+
+
+        week: {
+
+            seconds:
+            weekSeconds
+
+        },
+
+
+        total: {
+
+            seconds:
+            totalSeconds
+
+        },
+
+
+        averageDaily: {
+
+            seconds:
+            averageDailySeconds
+
+        },
+
+
+        bestDay: {
+
+            date:
+                summary
+                    ?.best_day_date ??
+                null,
+
+            seconds:
+                Number(
+                    summary
+                        ?.best_day_seconds ??
+                    0
+                )
+
+        },
+
+
+        weekDays
+
+    };
+
 }
 
 
@@ -455,5 +766,9 @@ module.exports = {
 
     getContinueStudying,
 
-    updateWeeklyGoal
+    updateWeeklyGoal,
+
+    getRecentActivity,
+
+    getStudyTime
 };

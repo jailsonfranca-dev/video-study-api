@@ -293,35 +293,26 @@ async function getContinueStudying(
 
             v.duration_seconds,
 
+            f.id
+                AS folder_id,
+
+            f.name
+                AS folder_name,
+
             vp.current_time_seconds,
 
-            vp.completed,
+            vp.percentage
+                AS progress_percent,
 
-            vp.updated_at,
-
-            CASE
-
-                WHEN
-                    v.duration_seconds IS NULL
-                    OR v.duration_seconds = 0
-
-                THEN 0
-
-                ELSE ROUND(
-                    (
-                        vp.current_time_seconds::numeric
-                        /
-                        v.duration_seconds::numeric
-                    ) * 100,
-                    1
-                )
-
-            END AS progress_percent
+            vp.last_watched_at
 
         FROM video_progress vp
 
         INNER JOIN videos v
             ON v.id = vp.video_id
+
+        LEFT JOIN folders f
+            ON f.id = v.folder_id
 
         WHERE
             vp.user_id = $1
@@ -331,7 +322,7 @@ async function getContinueStudying(
             AND vp.current_time_seconds > 0
 
         ORDER BY
-            vp.updated_at DESC
+            vp.last_watched_at DESC
 
         LIMIT $2
     `;
@@ -541,6 +532,350 @@ async function updateWeeklyGoal(
     return result.rows[0];
 }
 
+async function getRecentActivity(
+    userId,
+    limit = 8
+) {
+
+    const query = `
+        SELECT
+
+            v.id
+                AS video_id,
+
+            v.name
+                AS video_name,
+
+            v.duration_seconds,
+
+            f.id
+                AS folder_id,
+
+            f.name
+                AS folder_name,
+
+            vp.current_time_seconds,
+
+            vp.percentage,
+
+            vp.completed,
+
+            vp.last_watched_at,
+
+            vp.completed_at,
+
+            CASE
+
+                WHEN
+                    vp.completed = TRUE
+                    AND vp.completed_at IS NOT NULL
+
+                THEN
+                    vp.completed_at
+
+                ELSE
+                    vp.last_watched_at
+
+            END
+                AS activity_at
+
+        FROM video_progress vp
+
+        INNER JOIN videos v
+            ON v.id = vp.video_id
+
+        LEFT JOIN folders f
+            ON f.id = v.folder_id
+
+        WHERE
+            vp.user_id = $1
+
+            AND (
+                vp.current_time_seconds > 0
+                OR vp.completed = TRUE
+            )
+
+        ORDER BY
+            activity_at DESC NULLS LAST
+
+        LIMIT $2
+    `;
+
+
+    const result =
+        await pool.query(
+            query,
+            [
+                userId,
+                limit
+            ]
+        );
+
+
+    return result.rows;
+}
+
+async function getStudyTimeSummary(
+    userId
+) {
+
+    const query = `
+        WITH bounds AS (
+
+            SELECT
+
+                (
+                    CURRENT_TIMESTAMP
+                    AT TIME ZONE
+                    'America/Fortaleza'
+                )::date
+                    AS today,
+
+                DATE_TRUNC(
+                    'week',
+                    CURRENT_TIMESTAMP
+                    AT TIME ZONE
+                    'America/Fortaleza'
+                )::date
+                    AS week_start
+
+        ),
+
+        summary AS (
+
+            SELECT
+
+                COALESCE(
+                    SUM(
+                        CASE
+
+                            WHEN std.study_date =
+                                 bounds.today
+
+                            THEN std.watched_seconds
+
+                            ELSE 0
+
+                        END
+                    ),
+                    0
+                ) AS today_seconds,
+
+
+                COALESCE(
+                    SUM(
+                        CASE
+
+                            WHEN
+                                std.study_date >=
+                                bounds.week_start
+
+                                AND
+
+                                std.study_date <=
+                                bounds.today
+
+                            THEN std.watched_seconds
+
+                            ELSE 0
+
+                        END
+                    ),
+                    0
+                ) AS week_seconds,
+
+
+                COALESCE(
+                    SUM(
+                        std.watched_seconds
+                    ),
+                    0
+                ) AS total_seconds,
+
+
+                (
+                    bounds.today -
+                    bounds.week_start
+                ) + 1 AS days_elapsed
+
+            FROM bounds
+
+            LEFT JOIN study_time_daily std
+                ON std.user_id = $1
+
+            GROUP BY
+                bounds.today,
+                bounds.week_start
+
+        ),
+
+        best_day AS (
+
+            SELECT
+
+                std.study_date,
+
+                SUM(
+                    std.watched_seconds
+                ) AS seconds
+
+            FROM study_time_daily std
+
+            CROSS JOIN bounds
+
+            WHERE
+                std.user_id = $1
+
+                AND std.study_date >=
+                    bounds.week_start
+
+                AND std.study_date <=
+                    bounds.today
+
+            GROUP BY
+                std.study_date
+
+            ORDER BY
+                seconds DESC,
+                std.study_date DESC
+
+            LIMIT 1
+
+        )
+
+        SELECT
+
+            summary.today_seconds,
+
+            summary.week_seconds,
+
+            summary.total_seconds,
+
+            summary.days_elapsed,
+
+            TO_CHAR(
+                best_day.study_date,
+                'YYYY-MM-DD'
+            ) AS best_day_date,
+
+            COALESCE(
+                best_day.seconds,
+                0
+            ) AS best_day_seconds
+
+        FROM summary
+
+        LEFT JOIN best_day
+            ON TRUE
+    `;
+
+
+    const result =
+        await pool.query(
+            query,
+            [
+                userId
+            ]
+        );
+
+
+    return result.rows[0];
+
+}
+
+async function getWeeklyStudyTime(
+    userId
+) {
+
+    const query = `
+        WITH bounds AS (
+
+            SELECT
+
+                DATE_TRUNC(
+                    'week',
+                    CURRENT_TIMESTAMP
+                    AT TIME ZONE
+                    'America/Fortaleza'
+                )::date
+                    AS week_start
+
+        ),
+
+        days AS (
+
+            SELECT
+
+                generate_series(
+                    bounds.week_start,
+                    bounds.week_start + 6,
+                    INTERVAL '1 day'
+                )::date
+                    AS study_date
+
+            FROM bounds
+
+        ),
+
+        totals AS (
+
+            SELECT
+
+                study_date,
+
+                SUM(
+                    watched_seconds
+                ) AS seconds
+
+            FROM study_time_daily
+
+            WHERE
+                user_id = $1
+
+            GROUP BY
+                study_date
+
+        )
+
+        SELECT
+
+            days.study_date,
+
+            EXTRACT(
+                ISODOW
+                FROM days.study_date
+            )::integer
+                AS day_of_week,
+
+            COALESCE(
+                totals.seconds,
+                0
+            ) AS seconds
+
+        FROM days
+
+        LEFT JOIN totals
+            ON totals.study_date =
+               days.study_date
+
+        ORDER BY
+            days.study_date
+    `;
+
+
+    const result =
+        await pool.query(
+            query,
+            [
+                userId
+            ]
+        );
+
+
+    return result.rows;
+
+}
+
 
 module.exports = {
 
@@ -554,5 +889,11 @@ module.exports = {
 
     getCurrentStreak,
 
-    updateWeeklyGoal
+    updateWeeklyGoal,
+
+    getRecentActivity,
+
+    getStudyTimeSummary,
+
+    getWeeklyStudyTime
 };

@@ -18,6 +18,7 @@ const videoMetadataController = require('../controllers/videoMetadataController'
 
 const {updateVideoDurationSchema} = require('../validators/videoDurationValidator');
 const studyMaterialController = require('../controllers/studyMaterialController');
+const studyTimeController = require('../controllers/studyTimeController');
 
 const router =
     express.Router();
@@ -141,6 +142,11 @@ router.post(
     //validateId,
     studyMaterialController
         .regenerateFlashcards
+);
+
+router.post(
+    '/videos/:videoId/study-time',
+    studyTimeController.register
 );
 
 
