@@ -62,6 +62,11 @@ router.get(
     dashboardController.studyTime
 );
 
+router.patch(
+    '/study-time-goal',
+    dashboardController.updateStudyTimeGoal
+);
+
 
 module.exports =
     router;

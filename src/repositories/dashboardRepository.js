@@ -648,14 +648,13 @@ async function getStudyTimeSummary(
                 COALESCE(
                     SUM(
                         CASE
-
-                            WHEN std.study_date =
-                                 bounds.today
-
-                            THEN std.watched_seconds
-
-                            ELSE 0
-
+                            WHEN
+                                std.study_date =
+                                bounds.today
+                            THEN
+                                std.watched_seconds
+                            ELSE
+                                0
                         END
                     ),
                     0
@@ -665,7 +664,6 @@ async function getStudyTimeSummary(
                 COALESCE(
                     SUM(
                         CASE
-
                             WHEN
                                 std.study_date >=
                                 bounds.week_start
@@ -674,11 +672,10 @@ async function getStudyTimeSummary(
 
                                 std.study_date <=
                                 bounds.today
-
-                            THEN std.watched_seconds
-
-                            ELSE 0
-
+                            THEN
+                                std.watched_seconds
+                            ELSE
+                                0
                         END
                     ),
                     0
@@ -696,7 +693,8 @@ async function getStudyTimeSummary(
                 (
                     bounds.today -
                     bounds.week_start
-                ) + 1 AS days_elapsed
+                ) + 1
+                    AS days_elapsed
 
             FROM bounds
 
@@ -726,11 +724,13 @@ async function getStudyTimeSummary(
             WHERE
                 std.user_id = $1
 
-                AND std.study_date >=
-                    bounds.week_start
+                AND
+                std.study_date >=
+                bounds.week_start
 
-                AND std.study_date <=
-                    bounds.today
+                AND
+                std.study_date <=
+                bounds.today
 
             GROUP BY
                 std.study_date
@@ -753,6 +753,11 @@ async function getStudyTimeSummary(
 
             summary.days_elapsed,
 
+            COALESCE(
+                u.weekly_study_minutes,
+                600
+            ) AS weekly_study_minutes,
+
             TO_CHAR(
                 best_day.study_date,
                 'YYYY-MM-DD'
@@ -767,6 +772,9 @@ async function getStudyTimeSummary(
 
         LEFT JOIN best_day
             ON TRUE
+
+        LEFT JOIN users u
+            ON u.id = $1
     `;
 
 
@@ -876,6 +884,39 @@ async function getWeeklyStudyTime(
 
 }
 
+async function updateWeeklyStudyTimeGoal(
+    userId,
+    targetMinutes
+) {
+
+    const query = `
+        UPDATE users
+
+        SET
+            weekly_study_minutes = $2
+
+        WHERE
+            id = $1
+
+        RETURNING
+            weekly_study_minutes
+    `;
+
+
+    const result =
+        await pool.query(
+            query,
+            [
+                userId,
+                targetMinutes
+            ]
+        );
+
+
+    return result.rows[0];
+
+}
+
 
 module.exports = {
 
@@ -895,5 +936,7 @@ module.exports = {
 
     getStudyTimeSummary,
 
-    getWeeklyStudyTime
+    getWeeklyStudyTime,
+
+    updateWeeklyStudyTimeGoal
 };

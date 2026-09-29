@@ -257,6 +257,48 @@ async function studyTime(
 
 }
 
+async function updateStudyTimeGoal(
+    req,
+    res,
+    next
+) {
+
+    try {
+
+        const result =
+            await dashboardService
+                .updateWeeklyStudyTimeGoal(
+
+                    req.user.id,
+
+                    req.body.targetMinutes
+
+                );
+
+
+        return res
+            .status(200)
+            .json({
+
+                message:
+                    'Meta semanal de tempo atualizada com sucesso.',
+
+                weeklyGoal:
+                result
+
+            });
+
+
+    } catch (error) {
+
+        next(
+            error
+        );
+
+    }
+
+}
+
 
 module.exports = {
 
@@ -272,5 +314,7 @@ module.exports = {
 
     recentActivity,
 
-    studyTime
+    studyTime,
+
+    updateStudyTimeGoal
 };

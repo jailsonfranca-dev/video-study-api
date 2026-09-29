@@ -612,6 +612,50 @@ async function getStudyTime(
             summary?.total_seconds ??
             0
         );
+    const weeklyGoalMinutes =
+        Number(
+            summary?.weekly_study_minutes ??
+            600
+        );
+
+
+    const weeklyGoalSeconds =
+        weeklyGoalMinutes *
+        60;
+
+
+    const remainingSeconds =
+        Math.max(
+            weeklyGoalSeconds -
+            weekSeconds,
+            0
+        );
+
+
+    const weeklyGoalProgressPercent =
+        weeklyGoalSeconds > 0
+
+            ? Math.min(
+                Number(
+                    (
+                        (
+                            weekSeconds /
+                            weeklyGoalSeconds
+                        ) *
+                        100
+                    ).toFixed(
+                        1
+                    )
+                ),
+                100
+            )
+
+            : 0;
+
+
+    const weeklyGoalAchieved =
+        weekSeconds >=
+        weeklyGoalSeconds;
 
 
     const daysElapsed =
@@ -749,7 +793,92 @@ async function getStudyTime(
         },
 
 
+        weeklyGoal: {
+
+            targetMinutes:
+            weeklyGoalMinutes,
+
+
+            targetSeconds:
+            weeklyGoalSeconds,
+
+
+            studiedSeconds:
+            weekSeconds,
+
+
+            remainingSeconds,
+
+
+            progressPercent:
+            weeklyGoalProgressPercent,
+
+
+            achieved:
+            weeklyGoalAchieved
+
+        },
+
+
         weekDays
+
+    };
+
+}
+
+async function updateWeeklyStudyTimeGoal(
+    userId,
+    targetMinutes
+) {
+
+    const numericTarget =
+        Number(
+            targetMinutes
+        );
+
+
+    if (
+        !Number.isInteger(
+            numericTarget
+        )
+        ||
+        numericTarget < 1
+        ||
+        numericTarget > 10080
+    ) {
+
+        throw new AppError(
+            'A meta semanal de tempo deve ser um número inteiro entre 1 e 10080 minutos.',
+            400
+        );
+
+    }
+
+
+    const result =
+        await dashboardRepository
+            .updateWeeklyStudyTimeGoal(
+                userId,
+                numericTarget
+            );
+
+
+    if (!result) {
+
+        throw new AppError(
+            'Usuário não encontrado.',
+            404
+        );
+
+    }
+
+
+    return {
+
+        targetMinutes:
+            Number(
+                result.weekly_study_minutes
+            )
 
     };
 
@@ -770,5 +899,7 @@ module.exports = {
 
     getRecentActivity,
 
-    getStudyTime
+    getStudyTime,
+
+    updateWeeklyStudyTimeGoal
 };
