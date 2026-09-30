@@ -67,6 +67,11 @@ router.patch(
     dashboardController.updateStudyTimeGoal
 );
 
+router.get(
+    '/study-sessions',
+    dashboardController.studySessions
+);
+
 
 module.exports =
     router;

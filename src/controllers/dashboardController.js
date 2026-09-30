@@ -299,6 +299,42 @@ async function updateStudyTimeGoal(
 
 }
 
+async function studySessions(
+    req,
+    res,
+    next
+) {
+
+    try {
+
+        const result =
+            await dashboardService
+                .getStudySessions(
+
+                    req.user.id,
+
+                    req.query.limit
+
+                );
+
+
+        return res
+            .status(200)
+            .json(
+                result
+            );
+
+
+    } catch (error) {
+
+        next(
+            error
+        );
+
+    }
+
+}
+
 
 module.exports = {
 
@@ -316,5 +352,7 @@ module.exports = {
 
     studyTime,
 
-    updateStudyTimeGoal
+    updateStudyTimeGoal,
+
+    studySessions
 };

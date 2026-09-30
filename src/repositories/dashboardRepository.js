@@ -917,6 +917,76 @@ async function updateWeeklyStudyTimeGoal(
 
 }
 
+async function getStudySessions(
+    userId,
+    limit = 20
+) {
+
+    const query = `
+        SELECT
+
+            ss.id,
+
+            ss.video_id,
+
+            v.name
+                AS video_name,
+
+            f.id
+                AS folder_id,
+
+            f.name
+                AS folder_name,
+
+            TO_CHAR(
+                ss.started_at
+                    AT TIME ZONE
+                    'America/Fortaleza',
+                'YYYY-MM-DD'
+            ) AS study_date,
+
+            ss.started_at,
+
+            ss.ended_at,
+
+            ss.watched_seconds,
+
+            ss.start_position_seconds,
+
+            ss.end_position_seconds
+
+        FROM study_sessions ss
+
+        INNER JOIN videos v
+            ON v.id = ss.video_id
+
+        LEFT JOIN folders f
+            ON f.id = v.folder_id
+
+        WHERE
+            ss.user_id = $1
+
+        ORDER BY
+            ss.started_at DESC
+
+        LIMIT $2
+    `;
+
+
+    const result =
+        await pool.query(
+            query,
+            [
+                userId,
+                limit
+            ]
+        );
+
+
+    return result.rows;
+
+}
+
 
 module.exports = {
 
@@ -938,5 +1008,7 @@ module.exports = {
 
     getWeeklyStudyTime,
 
-    updateWeeklyStudyTimeGoal
+    updateWeeklyStudyTimeGoal,
+
+    getStudySessions
 };

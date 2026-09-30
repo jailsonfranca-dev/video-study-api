@@ -884,6 +884,133 @@ async function updateWeeklyStudyTimeGoal(
 
 }
 
+async function getStudySessions(
+    userId,
+    limit
+) {
+
+    let numericLimit =
+        Number(
+            limit ??
+            20
+        );
+
+
+    if (
+        !Number.isInteger(
+            numericLimit
+        )
+        ||
+        numericLimit < 1
+    ) {
+
+        numericLimit =
+            20;
+
+    }
+
+
+    numericLimit =
+        Math.min(
+            numericLimit,
+            100
+        );
+
+
+    const rows =
+        await dashboardRepository
+            .getStudySessions(
+                userId,
+                numericLimit
+            );
+
+
+    return {
+
+        sessions:
+            (
+                rows ??
+                []
+            ).map(
+                session => ({
+
+                    id:
+                        String(
+                            session.id
+                        ),
+
+                    videoId:
+                        String(
+                            session.video_id
+                        ),
+
+                    videoName:
+                    session.video_name,
+
+
+                    folderId:
+                        session.folder_id
+                            ? String(
+                                session.folder_id
+                            )
+                            : null,
+
+
+                    folderName:
+                        session.folder_name ??
+                        null,
+
+
+                    studyDate:
+                    session.study_date,
+
+
+                    startedAt:
+                    session.started_at,
+
+
+                    endedAt:
+                        session.ended_at ??
+                        null,
+
+
+                    watchedSeconds:
+                        Number(
+                            session.watched_seconds ??
+                            0
+                        ),
+
+
+                    startPositionSeconds:
+                        session.start_position_seconds !==
+                        null
+                            ? Number(
+                                session.start_position_seconds
+                            )
+                            : null,
+
+
+                    endPositionSeconds:
+                        session.end_position_seconds !==
+                        null
+                            ? Number(
+                                session.end_position_seconds
+                            )
+                            : null,
+
+
+                    status:
+                        session.ended_at
+                            ? 'completed'
+                            : 'active'
+
+                })
+            )
+
+    };
+
+}
+
 
 module.exports = {
 
@@ -901,5 +1028,7 @@ module.exports = {
 
     getStudyTime,
 
-    updateWeeklyStudyTimeGoal
+    updateWeeklyStudyTimeGoal,
+
+    getStudySessions
 };
