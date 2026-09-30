@@ -987,6 +987,320 @@ async function getStudySessions(
 
 }
 
+async function getSessionStats(
+    userId
+) {
+
+    const query = `
+        WITH bounds AS (
+
+            SELECT
+
+                (
+                    CURRENT_TIMESTAMP
+                    AT TIME ZONE
+                    'America/Fortaleza'
+                )::date
+                    AS today,
+
+                DATE_TRUNC(
+                    'week',
+                    CURRENT_TIMESTAMP
+                    AT TIME ZONE
+                    'America/Fortaleza'
+                )::date
+                    AS week_start
+
+        ),
+
+        valid_sessions AS (
+
+            SELECT
+
+                ss.id,
+
+                ss.started_at,
+
+                ss.ended_at,
+
+                ss.watched_seconds,
+
+                (
+                    ss.started_at
+                    AT TIME ZONE
+                    'America/Fortaleza'
+                )::date
+                    AS local_date,
+
+                EXTRACT(
+                    HOUR
+                    FROM (
+                        ss.started_at
+                        AT TIME ZONE
+                        'America/Fortaleza'
+                    )
+                )::integer
+                    AS local_hour
+
+            FROM study_sessions ss
+
+            WHERE
+                ss.user_id = $1
+
+                AND ss.ended_at IS NOT NULL
+
+                AND ss.watched_seconds > 0
+
+        ),
+
+        summary AS (
+
+            SELECT
+
+                COUNT(
+                    *
+                ) FILTER (
+                    WHERE
+                        valid_sessions.local_date =
+                        bounds.today
+                ) AS today_sessions,
+
+
+                COUNT(
+                    *
+                ) FILTER (
+                    WHERE
+                        valid_sessions.local_date >=
+                        bounds.week_start
+
+                        AND
+
+                        valid_sessions.local_date <=
+                        bounds.today
+                ) AS week_sessions,
+
+
+                COALESCE(
+                    ROUND(
+                        AVG(
+                            valid_sessions.watched_seconds
+                        )
+                    ),
+                    0
+                ) AS average_session_seconds,
+
+
+                COALESCE(
+                    MAX(
+                        valid_sessions.watched_seconds
+                    ),
+                    0
+                ) AS longest_session_seconds
+
+            FROM bounds
+
+            LEFT JOIN valid_sessions
+                ON TRUE
+
+        ),
+
+        favorite_hour AS (
+
+            SELECT
+
+                valid_sessions.local_hour
+                    AS hour,
+
+                SUM(
+                    valid_sessions.watched_seconds
+                ) AS seconds
+
+            FROM valid_sessions
+
+            CROSS JOIN bounds
+
+            WHERE
+                valid_sessions.local_date >=
+                bounds.week_start
+
+                AND
+
+                valid_sessions.local_date <=
+                bounds.today
+
+            GROUP BY
+                valid_sessions.local_hour
+
+            ORDER BY
+                seconds DESC,
+                hour ASC
+
+            LIMIT 1
+
+        )
+
+        SELECT
+
+            summary.today_sessions,
+
+            summary.week_sessions,
+
+            summary.average_session_seconds,
+
+            summary.longest_session_seconds,
+
+            favorite_hour.hour
+                AS favorite_hour,
+
+            COALESCE(
+                favorite_hour.seconds,
+                0
+            ) AS favorite_hour_seconds
+
+        FROM summary
+
+        LEFT JOIN favorite_hour
+            ON TRUE
+    `;
+
+
+    const result =
+        await pool.query(
+            query,
+            [
+                userId
+            ]
+        );
+
+
+    return result.rows[0];
+
+}
+
+async function getWeeklySessionActivity(
+    userId
+) {
+
+    const query = `
+        WITH bounds AS (
+
+            SELECT
+
+                DATE_TRUNC(
+                    'week',
+                    CURRENT_TIMESTAMP
+                    AT TIME ZONE
+                    'America/Fortaleza'
+                )::date
+                    AS week_start
+
+        ),
+
+        days AS (
+
+            SELECT
+
+                generate_series(
+                    bounds.week_start,
+                    bounds.week_start + 6,
+                    INTERVAL '1 day'
+                )::date
+                    AS study_date
+
+            FROM bounds
+
+        ),
+
+        session_totals AS (
+
+            SELECT
+
+                (
+                    ss.started_at
+                    AT TIME ZONE
+                    'America/Fortaleza'
+                )::date
+                    AS study_date,
+
+                COUNT(*)
+                    AS sessions
+
+            FROM study_sessions ss
+
+            CROSS JOIN bounds
+
+            WHERE
+                ss.user_id = $1
+
+                AND ss.ended_at IS NOT NULL
+
+                AND ss.watched_seconds > 0
+
+                AND (
+                    ss.started_at
+                    AT TIME ZONE
+                    'America/Fortaleza'
+                )::date >=
+                    bounds.week_start
+
+                AND (
+                    ss.started_at
+                    AT TIME ZONE
+                    'America/Fortaleza'
+                )::date <=
+                    bounds.week_start + 6
+
+            GROUP BY
+                (
+                    ss.started_at
+                    AT TIME ZONE
+                    'America/Fortaleza'
+                )::date
+
+        )
+
+        SELECT
+
+            TO_CHAR(
+                days.study_date,
+                'YYYY-MM-DD'
+            ) AS study_date,
+
+            EXTRACT(
+                ISODOW
+                FROM days.study_date
+            )::integer
+                AS day_of_week,
+
+            COALESCE(
+                session_totals.sessions,
+                0
+            ) AS sessions
+
+        FROM days
+
+        LEFT JOIN session_totals
+            ON session_totals.study_date =
+               days.study_date
+
+        ORDER BY
+            days.study_date
+    `;
+
+
+    const result =
+        await pool.query(
+            query,
+            [
+                userId
+            ]
+        );
+
+
+    return result.rows;
+
+}
+
 
 module.exports = {
 
@@ -1010,5 +1324,9 @@ module.exports = {
 
     updateWeeklyStudyTimeGoal,
 
-    getStudySessions
+    getStudySessions,
+
+    getSessionStats,
+
+    getWeeklySessionActivity
 };

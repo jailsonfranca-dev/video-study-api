@@ -72,6 +72,11 @@ router.get(
     dashboardController.studySessions
 );
 
+router.get(
+    '/session-stats',
+    dashboardController.sessionStats
+);
+
 
 module.exports =
     router;

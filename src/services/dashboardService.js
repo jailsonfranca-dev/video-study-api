@@ -1011,6 +1011,155 @@ async function getStudySessions(
 
 }
 
+async function getSessionStats(
+    userId
+) {
+
+    const [
+        data,
+        weeklyRows
+    ] =
+        await Promise.all([
+
+            dashboardRepository
+                .getSessionStats(
+                    userId
+                ),
+
+            dashboardRepository
+                .getWeeklySessionActivity(
+                    userId
+                )
+
+        ]);
+
+
+    const favoriteHour =
+        data?.favorite_hour !==
+        null &&
+        data?.favorite_hour !==
+        undefined
+
+            ? Number(
+                data.favorite_hour
+            )
+
+            : null;
+
+
+    const dayNames = {
+
+        1: 'seg',
+
+        2: 'ter',
+
+        3: 'qua',
+
+        4: 'qui',
+
+        5: 'sex',
+
+        6: 'sab',
+
+        7: 'dom'
+
+    };
+
+
+    const weekDays =
+        (
+            weeklyRows ??
+            []
+        ).map(
+            row => {
+
+                const dayNumber =
+                    Number(
+                        row.day_of_week
+                    );
+
+
+                return {
+
+                    date:
+                    row.study_date,
+
+                    day:
+                        dayNames[
+                            dayNumber
+                            ] ??
+                        '',
+
+                    sessions:
+                        Number(
+                            row.sessions ??
+                            0
+                        )
+
+                };
+
+            }
+        );
+
+
+    return {
+
+        today: {
+
+            sessions:
+                Number(
+                    data?.today_sessions ??
+                    0
+                )
+
+        },
+
+
+        week: {
+
+            sessions:
+                Number(
+                    data?.week_sessions ??
+                    0
+                )
+
+        },
+
+
+        averageSessionSeconds:
+            Number(
+                data?.average_session_seconds ??
+                0
+            ),
+
+
+        longestSessionSeconds:
+            Number(
+                data?.longest_session_seconds ??
+                0
+            ),
+
+
+        favoriteStudyHour: {
+
+            hour:
+            favoriteHour,
+
+            seconds:
+                Number(
+                    data?.favorite_hour_seconds ??
+                    0
+                )
+
+        },
+
+
+        weekDays
+
+    };
+
+}
+
 
 module.exports = {
 
@@ -1030,5 +1179,7 @@ module.exports = {
 
     updateWeeklyStudyTimeGoal,
 
-    getStudySessions
+    getStudySessions,
+
+    getSessionStats
 };

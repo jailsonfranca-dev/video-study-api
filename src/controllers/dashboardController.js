@@ -335,6 +335,38 @@ async function studySessions(
 
 }
 
+async function sessionStats(
+    req,
+    res,
+    next
+) {
+
+    try {
+
+        const result =
+            await dashboardService
+                .getSessionStats(
+                    req.user.id
+                );
+
+
+        return res
+            .status(200)
+            .json(
+                result
+            );
+
+
+    } catch (error) {
+
+        next(
+            error
+        );
+
+    }
+
+}
+
 
 module.exports = {
 
@@ -354,5 +386,7 @@ module.exports = {
 
     updateStudyTimeGoal,
 
-    studySessions
+    studySessions,
+
+    sessionStats
 };
