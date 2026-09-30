@@ -34,7 +34,7 @@ async function create(
                     'lax',
 
                 path:
-                    '/library/videos',
+                    '/',
 
                 maxAge:
                     ttlSeconds * 1000
@@ -76,7 +76,7 @@ function remove(
                 'lax',
 
             path:
-                '/library/videos'
+                '/'
         }
     );
 
