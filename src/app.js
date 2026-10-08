@@ -31,10 +31,80 @@ const errorHandler =
 
 const app = express();
 
+app.set(
+    'trust proxy',
+    1
+);
+
+
+
+const allowedOrigins =
+    (
+        process.env.FRONTEND_ORIGINS ||
+        'http://localhost:5173'
+    )
+        .split(',')
+        .map(
+            value =>
+                value.trim()
+        )
+        .filter(
+            Boolean
+        );
+
+
 
 app.use(helmet());
 
-app.use(cors());
+app.use(cors(
+    {
+
+        origin(
+            origin,
+            callback
+        ) {
+
+            /*
+             * Postman, servidor-servidor,
+             * health checks etc.
+             */
+            if (!origin) {
+
+                return callback(
+                    null,
+                    true
+                );
+
+            }
+
+
+            if (
+                allowedOrigins.includes(
+                    origin
+                )
+            ) {
+
+                return callback(
+                    null,
+                    true
+                );
+
+            }
+
+
+            return callback(
+                new Error(
+                    `Origin não permitida pelo CORS: ${origin}`
+                )
+            );
+
+        },
+
+        credentials:
+            true
+
+    })
+);
 
 app.use(express.json());
 
@@ -120,6 +190,33 @@ app.get(
                 });
 
         }
+
+    }
+);
+
+app.get(
+    '/health',
+    (
+        req,
+        res
+    ) => {
+
+        res.status(
+            200
+        ).json({
+
+            status:
+                'ok',
+
+            environment:
+                process.env.NODE_ENV ||
+                'development',
+
+            timestamp:
+                new Date()
+                    .toISOString()
+
+        });
 
     }
 );

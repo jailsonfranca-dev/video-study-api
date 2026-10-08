@@ -6,22 +6,43 @@ const {
     );
 
 
-const GOOGLE_SCOPES = [
+function getGoogleOAuthClient() {
 
-    'https://www.googleapis.com/auth/drive.readonly'
+    const clientId =
+        process.env
+            .GOOGLE_CLIENT_ID;
 
-];
+
+    const clientSecret =
+        process.env
+            .GOOGLE_CLIENT_SECRET;
 
 
-function createGoogleOAuthClient() {
+    const redirectUri =
+        process.env
+            .GOOGLE_REDIRECT_URI ||
+        'http://localhost:3000/google/callback';
+
+
+    if (
+        !clientId ||
+        !clientSecret
+    ) {
+
+        throw new Error(
+            'Credenciais Google OAuth não configuradas.'
+        );
+
+    }
+
 
     return new google.auth.OAuth2(
 
-        process.env.GOOGLE_CLIENT_ID,
+        clientId,
 
-        process.env.GOOGLE_CLIENT_SECRET,
+        clientSecret,
 
-        process.env.GOOGLE_REDIRECT_URI
+        redirectUri
 
     );
 
@@ -30,7 +51,6 @@ function createGoogleOAuthClient() {
 
 module.exports = {
 
-    createGoogleOAuthClient,
+    getGoogleOAuthClient
 
-    GOOGLE_SCOPES
 };
