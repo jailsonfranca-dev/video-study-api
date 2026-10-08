@@ -20,17 +20,17 @@ function getGoogleOAuthClient() {
 
     const redirectUri =
         process.env
-            .GOOGLE_REDIRECT_URI ||
-        'http://localhost:3000/google/callback';
+            .GOOGLE_REDIRECT_URI;
 
 
     if (
         !clientId ||
-        !clientSecret
+        !clientSecret ||
+        !redirectUri
     ) {
 
         throw new Error(
-            'Credenciais Google OAuth não configuradas.'
+            'Configuração Google OAuth incompleta.'
         );
 
     }
@@ -49,8 +49,18 @@ function getGoogleOAuthClient() {
 }
 
 
+/*
+ * Alias para manter compatibilidade
+ * com services que usam esse nome.
+ */
+const createGoogleOAuthClient =
+    getGoogleOAuthClient;
+
+
 module.exports = {
 
-    getGoogleOAuthClient
+    getGoogleOAuthClient,
+
+    createGoogleOAuthClient
 
 };
