@@ -31,8 +31,7 @@ async function create(
             'media_token',
             token,
             {
-                httpOnly:
-                    true,
+                httpOnly: true,
 
                 secure:
                 isProduction,
@@ -42,11 +41,10 @@ async function create(
                         ? 'none'
                         : 'lax',
 
-                path:
-                    '/',
+                path: '/',
 
                 maxAge:
-                    ttlSeconds * 1000
+                    15 * 60 * 1000
             }
         );
 
@@ -85,8 +83,7 @@ function remove(
     res.clearCookie(
         'media_token',
         {
-            httpOnly:
-                true,
+            httpOnly: true,
 
             secure:
             isProduction,
@@ -96,8 +93,7 @@ function remove(
                     ? 'none'
                     : 'lax',
 
-            path:
-                '/'
+            path: '/'
         }
     );
 
