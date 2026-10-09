@@ -151,45 +151,47 @@ async function createVideoStream(
         };
 
 
-    } catch (error) {
+    }  catch (error) {
+    const status =
+        error.response?.status ||
+        error.code;
 
-        const status =
-            error.response?.status ||
-            error.code;
+    console.error('[VIDEO STREAM] Google Drive:', {
+        videoId,
+        userId,
+        status,
+        googleErrors: error.response?.data?.error?.errors?.map(
+            item => ({
+                reason: item.reason,
+                message: item.message
+            })
+        ) || null,
+        message: error.message
+    });
 
-
-        if (status === 404) {
-
-            throw new AppError(
-                'Arquivo de vídeo não encontrado no Google Drive.',
-                404
-            );
-
-        }
-
-
-        if (status === 403) {
-
-            throw new AppError(
-                'A conta Google conectada não possui permissão para reproduzir este vídeo.',
-                403
-            );
-
-        }
-
-
-        if (status === 416) {
-
-            throw new AppError(
-                'Intervalo de bytes inválido.',
-                416
-            );
-
-        }
-
-
-        throw error;
+    if (status === 404) {
+        throw new AppError(
+            'Arquivo de vídeo não encontrado ou sem acesso no Google Drive.',
+            404
+        );
     }
+
+    if (status === 403) {
+        throw new AppError(
+            'A conta Google não possui permissão para reproduzir este vídeo.',
+            403
+        );
+    }
+
+    if (status === 416) {
+        throw new AppError(
+            'Intervalo de bytes inválido.',
+            416
+        );
+    }
+
+    throw error;
+}
 }
 module.exports = {
     createVideoStream
