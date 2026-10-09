@@ -15,7 +15,9 @@ function authenticateMedia(
 ) {
 
     /*
-     * Primeiro tentamos o cookie.
+     * =====================================
+     * 1) COOKIE DE MÍDIA (media_session)
+     * =====================================
      */
     const mediaToken =
         req.cookies?.media_session;
@@ -55,8 +57,55 @@ function authenticateMedia(
 
 
     /*
-     * Mantemos suporte ao Bearer
-     * para Postman e testes.
+     * =====================================
+     * 2) TOKEN VIA QUERY STRING (?token=)
+     * =====================================
+     *
+     * Usado pela tag <video> em ambientes
+     * cross-origin (Vercel -> Render),
+     * onde o navegador não envia cookies.
+     */
+    const queryToken =
+        req.query?.token;
+
+
+    if (queryToken) {
+
+        try {
+
+            const decoded =
+                jwt.verify(
+                    queryToken,
+                    process.env.JWT_SECRET
+                );
+
+
+            req.user = {
+                id: decoded.sub
+            };
+
+
+            return next();
+
+
+        } catch (error) {
+
+            return next(
+                new AppError(
+                    'Token de vídeo inválido ou expirado.',
+                    401
+                )
+            );
+
+        }
+
+    }
+
+
+    /*
+     * =====================================
+     * 3) BEARER (Postman / testes)
+     * =====================================
      */
     const authHeader =
         req.headers.authorization;
@@ -117,6 +166,11 @@ function authenticateMedia(
     }
 
 
+    /*
+     * =====================================
+     * NENHUMA AUTENTICAÇÃO VÁLIDA
+     * =====================================
+     */
     return next(
         new AppError(
             'Autenticação necessária para reproduzir o vídeo.',
