@@ -1,5 +1,7 @@
 const mediaAuthService =
-    require('../services/mediaAuthService');
+    require(
+        '../services/mediaAuthService'
+    );
 
 
 async function create(
@@ -19,14 +21,15 @@ async function create(
                     req.user.id
                 );
 
+
         const isProduction =
             process.env.NODE_ENV ===
             'production';
 
 
         res.cookie(
-            'media_token', // mantenha aqui o nome que seu código já usa
-            mediaToken,
+            'media_token',
+            token,
             {
                 httpOnly:
                     true,
@@ -43,13 +46,15 @@ async function create(
                     '/',
 
                 maxAge:
-                    15 * 60 * 1000
+                    ttlSeconds * 1000
             }
         );
 
 
         return res
-            .status(200)
+            .status(
+                200
+            )
             .json({
                 message:
                     'Sessão de mídia criada com sucesso.'
@@ -58,9 +63,12 @@ async function create(
 
     } catch (error) {
 
-        next(error);
+        next(
+            error
+        );
 
     }
+
 }
 
 
@@ -69,17 +77,24 @@ function remove(
     res
 ) {
 
+    const isProduction =
+        process.env.NODE_ENV ===
+        'production';
+
+
     res.clearCookie(
-        'media_session',
+        'media_token',
         {
-            httpOnly: true,
+            httpOnly:
+                true,
 
             secure:
-                process.env.NODE_ENV ===
-                'production',
+            isProduction,
 
             sameSite:
-                'lax',
+                isProduction
+                    ? 'none'
+                    : 'lax',
 
             path:
                 '/'
@@ -88,8 +103,11 @@ function remove(
 
 
     return res
-        .status(204)
+        .status(
+            204
+        )
         .send();
+
 }
 
 
