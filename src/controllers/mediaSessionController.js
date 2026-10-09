@@ -19,25 +19,31 @@ async function create(
                     req.user.id
                 );
 
+        const isProduction =
+            process.env.NODE_ENV ===
+            'production';
+
 
         res.cookie(
-            'media_session',
-            token,
+            'media_token', // mantenha aqui o nome que seu código já usa
+            mediaToken,
             {
-                httpOnly: true,
+                httpOnly:
+                    true,
 
                 secure:
-                    process.env.NODE_ENV ===
-                    'production',
+                isProduction,
 
                 sameSite:
-                    'lax',
+                    isProduction
+                        ? 'none'
+                        : 'lax',
 
                 path:
                     '/',
 
                 maxAge:
-                    ttlSeconds * 1000
+                    15 * 60 * 1000
             }
         );
 

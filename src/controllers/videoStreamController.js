@@ -9,6 +9,10 @@ async function stream(
 ) {
 
     try {
+        res.setHeader(
+            'Cross-Origin-Resource-Policy',
+            'cross-origin'
+        );
 
         const {
             id
