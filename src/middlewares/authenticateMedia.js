@@ -20,7 +20,7 @@ function authenticateMedia(
      * =====================================
      */
     const mediaToken =
-        req.cookies?.media_session;
+        req.cookies?.media_token;
 
 
     if (mediaToken) {
