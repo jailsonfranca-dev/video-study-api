@@ -4,6 +4,42 @@ const mediaAuthService =
     );
 
 
+function getMediaCookieOptions() {
+
+    const isProduction =
+        process.env.NODE_ENV ===
+        'production';
+
+
+    return {
+
+        httpOnly:
+            true,
+
+        secure:
+        isProduction,
+
+        sameSite:
+            isProduction
+                ? 'none'
+                : 'lax',
+
+        path:
+            '/',
+
+        /*
+         * Necessário para o cookie funcionar
+         * entre Vercel e Render em navegadores
+         * que restringem cookies de terceiros.
+         */
+        partitioned:
+        isProduction
+
+    };
+
+}
+
+
 async function create(
     req,
     res,
@@ -22,30 +58,21 @@ async function create(
                 );
 
 
-        const isProduction =
-            process.env.NODE_ENV ===
-            'production';
-
-
         res.cookie(
+
             'media_token',
+
             token,
+
             {
-                httpOnly: true,
 
-                secure:
-                isProduction,
-
-                sameSite:
-                    isProduction
-                        ? 'none'
-                        : 'lax',
-
-                path: '/',
+                ...getMediaCookieOptions(),
 
                 maxAge:
-                    15 * 60 * 1000
+                    ttlSeconds * 1000
+
             }
+
         );
 
 
@@ -75,26 +102,12 @@ function remove(
     res
 ) {
 
-    const isProduction =
-        process.env.NODE_ENV ===
-        'production';
-
-
     res.clearCookie(
+
         'media_token',
-        {
-            httpOnly: true,
 
-            secure:
-            isProduction,
+        getMediaCookieOptions()
 
-            sameSite:
-                isProduction
-                    ? 'none'
-                    : 'lax',
-
-            path: '/'
-        }
     );
 
 
@@ -108,6 +121,9 @@ function remove(
 
 
 module.exports = {
+
     create,
+
     remove
+
 };
