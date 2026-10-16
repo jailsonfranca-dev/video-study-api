@@ -621,6 +621,10 @@ async function getVideoStudyMaterial(
                 Boolean(
                     transcript
                 ),
+            transcript:
+                    transcript
+                        ?transcript.transcript
+                        :null,
 
             status:
                 'not_generated',
@@ -662,6 +666,10 @@ async function getVideoStudyMaterial(
             Boolean(
                 transcript
             ),
+        transcript:
+            transcript
+                ? transcript.transcript
+                : null,
 
         status:
         material.status,
