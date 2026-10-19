@@ -19,6 +19,7 @@ const videoMetadataController = require('../controllers/videoMetadataController'
 const {updateVideoDurationSchema} = require('../validators/videoDurationValidator');
 const studyMaterialController = require('../controllers/studyMaterialController');
 const studyTimeController = require('../controllers/studyTimeController');
+const videoImageController = require('../controllers/videoImageController');
 const studySessionController =
     require(
         '../controllers/studySessionController'
@@ -168,6 +169,21 @@ router.patch(
 router.patch(
     '/study-sessions/:sessionId/end',
     studySessionController.end
+);
+
+router.get(
+    '/videos/:id/study-material/image',
+    videoImageController.getImage
+);
+
+router.post(
+    '/videos/:id/study-material/image',
+    videoImageController.uploadImage
+);
+
+router.delete(
+    '/videos/:id/study-material/image',
+    videoImageController.deleteImage
 );
 
 
