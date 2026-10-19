@@ -17,13 +17,24 @@ async function uploadImageToDrive(userId, videoId, fileBuffer, originalName, mim
     // Usa a função padrão existente no seu projeto para criar o client autenticado do Drive
     const drive = await googleDriveService.createAuthenticatedDriveClient(userId);
 
-    const fileName = `resumo-video-${videoId}-${Date.now()}.jpg`;
+    const extensions = {
+        'image/jpeg': 'jpg',
+        'image/png': 'png',
+        'image/webp': 'webp'
+    };
+    const extension = extensions[mimeType];
+
+    if (!extension) {
+        throw new AppError('Formato de imagem inválido. Use JPG, PNG ou WebP.', 400);
+    }
+
+    const fileName = `resumo-video-${videoId}-${Date.now()}.${extension}`;
 
     const bufferStream = new Readable();
     bufferStream.push(fileBuffer);
     bufferStream.push(null);
 
-    const folderId = "1Qq68Xx29_KCirHzWc0LpecMRK9wA2s0W";//ID da Pasta no google Driver
+    const folderId = process.env.GOOGLE_DRIVE_STUDY_FOLDER_ID;
 
     const fileMetadata = {
         name: fileName,
@@ -85,6 +96,44 @@ async function getVideoImage(userId, videoId) {
     };
 }
 
+/**
+ * Retorna o conteudo binario da imagem vinculada ao video.
+ * A requisicao ao Drive usa as credenciais OAuth guardadas no backend;
+ * o navegador nunca precisa receber o token Google ou acessar drive.google.com.
+ */
+async function getVideoImageStream(userId, videoId) {
+    const video = await videoRepository.findById(videoId);
+    if (!video) {
+        throw new AppError('Vídeo não encontrado.', 404);
+    }
+
+    const record = await videoImageRepository.findByVideoId(videoId);
+    if (!record || !record.drive_file_id) {
+        throw new AppError('Nenhuma imagem cadastrada para este vídeo.', 404);
+    }
+
+    const drive = await googleDriveService.createAuthenticatedDriveClient(userId);
+    const fileId = record.drive_file_id;
+
+    const metadataResponse = await drive.files.get({
+        fileId,
+        supportsAllDrives: true,
+        fields: 'id,mimeType,size'
+    });
+
+    const mimeType = metadataResponse.data.mimeType;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(mimeType)) {
+        throw new AppError('O arquivo associado não é uma imagem compatível.', 415);
+    }
+
+    const fileResponse = await drive.files.get(
+        { fileId, alt: 'media', supportsAllDrives: true },
+        { responseType: 'stream' }
+    );
+
+    return { stream: fileResponse.data, mimeType };
+}
+
 async function deleteVideoImage(userId, videoId) {
     const video = await videoRepository.findById(videoId);
     if (!video) {
@@ -114,5 +163,6 @@ async function deleteVideoImage(userId, videoId) {
 module.exports = {
     uploadImageToDrive,
     getVideoImage,
+    getVideoImageStream,
     deleteVideoImage
 };

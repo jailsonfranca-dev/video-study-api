@@ -1,3 +1,4 @@
+const { pipeline } = require('node:stream/promises');
 const videoImageService = require('../services/videoImageService');
 const AppError = require('../errors/AppError');
 
@@ -14,7 +15,24 @@ async function uploadImage(req, res, next) {
         let originalName = 'resumo.jpg';
 
         if (imageBase64) {
-            const base64Clean = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+            if (typeof imageBase64 !== 'string') {
+                throw new AppError('A imagem deve ser uma string base64.', 400);
+            }
+
+            const match = imageBase64.match(/^data:(image\/(?:jpeg|png|webp));base64,/i);
+
+            // Preserva suporte a base64 puro enviado por clientes antigos.
+            if (imageBase64.startsWith('data:') && !match) {
+                throw new AppError('Formato de imagem inválido. Use JPG, PNG ou WebP.', 400);
+            }
+
+            if (match) {
+                mimeType = match[1].toLowerCase();
+                const ext = mimeType === 'image/jpeg' ? 'jpg' : mimeType.split('/')[1];
+                originalName = `resumo.${ext}`;
+            }
+
+            const base64Clean = match ? imageBase64.slice(match[0].length) : imageBase64;
             fileBuffer = Buffer.from(base64Clean, 'base64');
         } else if (req.file) {
             fileBuffer = req.file.buffer;
@@ -22,8 +40,12 @@ async function uploadImage(req, res, next) {
             originalName = req.file.originalname;
         }
 
-        if (!fileBuffer) {
-            throw new AppError('Nenhuma imagem foi enviada no corpo da requisição (esperado campo "image" em JSON base64).', 400);
+        if (!fileBuffer?.length) {
+            throw new AppError('Nenhuma imagem válida foi enviada no campo "image".', 400);
+        }
+
+        if (fileBuffer.length > 5 * 1024 * 1024) {
+            throw new AppError('A imagem deve ter no máximo 5 MB.', 413);
         }
 
         const result = await videoImageService.uploadImageToDrive(
@@ -55,6 +77,28 @@ async function getImage(req, res, next) {
     }
 }
 
+/** GET /library/videos/:id/study-material/image/content */
+async function getImageContent(req, res, next) {
+    try {
+        const { stream, mimeType } = await videoImageService.getVideoImageStream(
+            req.user.id,
+            req.params.id
+        );
+
+        res.setHeader('Content-Type', mimeType);
+        res.setHeader('Cache-Control', 'private, no-store');
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+
+        await pipeline(stream, res);
+    } catch (error) {
+        // Em caso de falha apos iniciar a resposta binaria, nao envie JSON.
+        if (res.headersSent || res.destroyed) {
+            return;
+        }
+        next(error);
+    }
+}
+
 async function deleteImage(req, res, next) {
     try {
         const { id } = req.params;
@@ -70,5 +114,6 @@ async function deleteImage(req, res, next) {
 module.exports = {
     uploadImage,
     getImage,
+    getImageContent,
     deleteImage
 };

@@ -90,7 +90,7 @@ router.get(
 
 router.patch(
     '/videos/:id/progress',
-   // validateId,
+    // validateId,
     validate(updateProgressSchema),
     videoProgressController.updateProgress
 );
@@ -174,6 +174,11 @@ router.patch(
 router.get(
     '/videos/:id/study-material/image',
     videoImageController.getImage
+);
+
+router.get(
+    '/videos/:id/study-material/image/content',
+    videoImageController.getImageContent
 );
 
 router.post(
