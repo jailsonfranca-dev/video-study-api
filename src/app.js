@@ -41,8 +41,7 @@ app.set(
 const allowedOrigins =
     (
         process.env.FRONTEND_ORIGINS ||
-        'http://localhost:5173',
-        'http://localhost:5174'
+        'http://localhost:5173'
     )
         .split(',')
         .map(
