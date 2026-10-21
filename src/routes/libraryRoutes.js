@@ -20,6 +20,7 @@ const {updateVideoDurationSchema} = require('../validators/videoDurationValidato
 const studyMaterialController = require('../controllers/studyMaterialController');
 const studyTimeController = require('../controllers/studyTimeController');
 const videoImageController = require('../controllers/videoImageController');
+const videoImagePageController = require('../controllers/videoImagePageController');
 const studySessionController =
     require(
         '../controllers/studySessionController'
@@ -191,5 +192,11 @@ router.delete(
     videoImageController.deleteImage
 );
 
+
+// Nova galeria: várias páginas por vídeo (mantém as rotas /image existentes).
+router.get('/videos/:id/study-material/images', videoImagePageController.list);
+router.post('/videos/:id/study-material/images', videoImagePageController.upload);
+router.get('/videos/:id/study-material/images/:pageId/content', videoImagePageController.getContent);
+router.delete('/videos/:id/study-material/images/:pageId', videoImagePageController.remove);
 
 module.exports = router;
